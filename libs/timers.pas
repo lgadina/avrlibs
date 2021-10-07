@@ -62,6 +62,7 @@ type
     period: uint32;
     realPeriod: uint32;
     freq, realFreq: uint32;
+    cpuDivider: uint32;
   {$EndIf}
 
     timer0_clock: uint8;
@@ -112,7 +113,12 @@ uses
 
 {$define MAX_PERIOD_8 := 1000000 * 1024 div F_CPU * 256}// 16384 (61 Гц) на 16 МГц
 {$define MAX_PERIOD_16 := 1000000 * 1024 div F_CPU * 65536}// 4194304 (0.24 Гц) на 16 МГц
-
+{$define T_FACTOR := F_CPU div 1000000}
+{$define CPU_DIV_1 := F_CPU}
+{$define CPU_DIV_8 := F_CPU div 8}
+{$define CPU_DIV_64 := F_CPU div 64}
+{$define CPU_DIV_256 := F_CPU div 256}
+{$define CPU_DIV_1024 := F_CPU div 1024}
 
 { TAvrTimer1 }
 
@@ -123,114 +129,131 @@ var
     prescaler: UInt8;
     divider: UInt16;
     top: UInt16;
+    cpuDivider: uint32;
 {$EndIf}
 begin
-  if TimerNo in [0, 2] then
-  begin
-    if APeriod > MAX_PERIOD_8 then
-      APeriod := MAX_PERIOD_8;
+  case TimerNo of
+    0, 2:
+    begin
+      if APeriod > MAX_PERIOD_8 then
+        APeriod := MAX_PERIOD_8
+      else
+      if APeriod < 1 then
+        APeriod := 1;
 
-    cycles := F_CPU div 1000000 * APeriod;
-    if cycles < 256 then
-    begin
-      prescaler := 1;
-      divider := 1;
-    end
-    else
-    if cycles < (256 * 8) then
-    begin
-      prescaler := 2;
-      divider := 8;
-    end
-    else
-    if cycles < (256 * 64) then
-    begin
-      prescaler := 3;
-      divider := 64;
-    end
-    else
-    if cycles < (256 * 256) then
-    begin
-      prescaler := 4;
-      divider := 256;
-    end
-    else
-    begin
-      prescaler := 5;
-      divider := 1024;
+      cycles := T_FACTOR * APeriod;
+      if cycles < 256 then
+      begin
+        prescaler := 1;
+        divider := 1;
+        cpuDivider := CPU_DIV_1;
+      end
+      else
+      if cycles < (256 * 8) then
+      begin
+        prescaler := 2;
+        divider := 8;
+        cpuDivider := CPU_DIV_8;
+      end
+      else
+      if cycles < (256 * 64) then
+      begin
+        prescaler := 3;
+        divider := 64;
+        cpuDivider := CPU_DIV_64;
+      end
+      else
+      if cycles < (256 * 256) then
+      begin
+        prescaler := 4;
+        divider := 256;
+        cpuDivider := CPU_DIV_256;
+      end
+      else
+      begin
+        prescaler := 5;
+        divider := 1024;
+        cpuDivider := CPU_DIV_1024;
+      end;
+      if cycles < (256 * 1024) then
+        top := cycles div divider
+      else
+        top := 0;
+      if TimerNo = 0 then
+      begin
+        TCCR0A := (TCCR0A and $F0) or (1 shl WGM01) or (0 shl WGM00);
+        TCCR0B := prescaler;
+        OCR0A := top - 1;
+        timer0_clock := (TCCR0B and $07);
+      end
+      else if TimerNo = 2 then
+      begin
+        TCCR2A := (TCCR2A and $F0) or (1 shl WGM21) or (0 shl WGM20);
+        TCCR2B := prescaler;
+        OCR2A := top - 1;
+      end;
+
+      if top > 0 then
+        Result := 1000000 div (cpuDivider div top)
+      else
+        Result := 1000000 div (cpuDivider div uint8(top - 1));
+
     end;
-    if cycles < (256 * 1024) then
-      top := cycles div divider
-    else
-      top := 0;
-    if TimerNo = 0 then
-    begin
-      TCCR0A := (TCCR0A and $F0) or (1 shl WGM01) or (0 shl WGM00);
-      TCCR0B := prescaler;
-      OCR0A := top - 1;
-      timer0_clock := (TCCR0B and $07);
-    end
-    else if TimerNo = 2 then
-    begin
-      TCCR2A := (TCCR2A and $F0) or (1 shl WGM21) or (0 shl WGM20);
-      TCCR2B := prescaler;
-      OCR2A := top - 1;
+    1: begin
+      if APeriod > MAX_PERIOD_16 then
+        APeriod := MAX_PERIOD_16
+      else
+      if APeriod < 1 then
+        APeriod := 1;
+      cycles := T_FACTOR * APeriod;
+      if cycles < 65536 then
+      begin
+        prescaler := 1;
+        divider := 1;
+        cpuDivider := CPU_DIV_1;
+      end
+      else
+      if cycles < 65536 * 8 then
+      begin
+        prescaler := 2;
+        divider := 8;
+        cpuDivider := CPU_DIV_8;
+      end
+      else
+      if cycles < 65536 * 64 then
+      begin
+        prescaler := 3;
+        divider := 64;
+        cpuDivider := CPU_DIV_64;
+      end
+      else
+      if cycles < 65536 * 256 then
+      begin
+        prescaler := 4;
+        divider := 256;
+        cpuDivider := CPU_DIV_256;
+      end
+      else
+      begin
+        prescaler := 5;
+        divider := 1024;
+        cpuDivider := CPU_DIV_1024;
+      end;
+
+      if cycles < 65536 * 1024 then
+        top := cycles div divider
+      else
+        top := 0;
+
+      TCCR1A := TCCR1A and $F0;
+      TCCR1B := ((1 shl WGM13) or (1 shl WGM12) or prescaler);
+      ICR1 := top - 1;
+      timer0_clock := (TCCR1B and $07);
+      if top > 0 then
+        Result := 1000000 div (cpuDivider div top)
+      else
+        Result := 1000000 div (cpuDivider div uint16(top - 1));
     end;
-
-    if top > 0 then
-      Result := 1000000 div ((F_CPU div divider) div top)
-    else
-      Result := 1000000 div ((F_CPU div divider) div uint8(top - 1));
-
-  end
-  else
-  if TimerNo = 1 then
-  begin
-    if APeriod > MAX_PERIOD_16 then
-      APeriod := MAX_PERIOD_16;
-    cycles := F_CPU div 1000000 * APeriod;
-    if cycles < 65536 then
-    begin
-      prescaler := 1;
-      divider := 1;
-    end
-    else
-    if cycles < 65536 * 8 then
-    begin
-      prescaler := 2;
-      divider := 8;
-    end
-    else
-    if cycles < 65536 * 64 then
-    begin
-      prescaler := 3;
-      divider := 64;
-    end
-    else
-    if cycles < 65536 * 256 then
-    begin
-      prescaler := 4;
-      divider := 256;
-    end
-    else
-    begin
-      prescaler := 5;
-      divider := 1024;
-    end;
-
-    if cycles < 65536 * 1024 then
-      top := cycles div divider
-    else
-      top := 65536;
-
-    TCCR1A := TCCR1A and $F0;
-    TCCR1B := ((1 shl WGM13) or (1 shl WGM12) or prescaler);
-    ICR1 := top - 1;
-    timer0_clock := (TCCR1B and $07);
-    if top > 0 then
-      Result := 1000000 div ((F_CPU div divider) div top)
-    else
-      Result := 1000000 div ((F_CPU div divider) div uint16(top - 1));
   end;
 {$IfNDef CPUAVR}
   realPeriod := Result;
@@ -355,12 +378,15 @@ procedure TAvrTimer.printDebugInfo;
 begin
   Writeln('Timer', TimerNo);
   writeln('Request freq: ', freq, ' Hz');
+  if realFreq = 0 then
+    realFreq := 1000000 div realPeriod;
   Writeln('Real freq: ', realFreq, ' Hz');
   writeln('Cycles: ', cycles);
   writeln('Period: ', period, ' us');
   Writeln('Real period: ', realPeriod, ' us');
   writeln('Prescaler: ', prescaler);
   writeln('Divider: ', divider);
+  writeln('CPU divider: ', cpuDivider);
   writeln('Counter: ', top);
   writeln('F_CPU: ', F_CPU);
   if TimerNo = 0 then
