@@ -1,6 +1,7 @@
 unit ports;
 
-{$mode delphi}{$H+}
+{$mode objfpc}{$H+}
+{$ModeSwitch advancedrecords}
 
 {$Optimization REGVAR}
 
@@ -17,7 +18,7 @@ const
   LOW       = false;
 
 type
-  TPin<const T: Byte> = record
+  generic TPin<const T: Byte> = record
   public
     procedure writeBit(const AValue: boolean);
     function readBit: boolean;
@@ -36,35 +37,35 @@ implementation
 
 { TPin }
 
-procedure TPin<T>.writeBit(const AValue: boolean);
+procedure TPin.writeBit(const AValue: boolean);
 begin
   {$IfDef CPUAVR5}
   {$i portwrite.inc}
   {$EndIf}
 end;
 
-procedure TPin<T>.writeBitInline(const AValue: Boolean);
+procedure TPin.writeBitInline(const AValue: Boolean);
 begin
   {$IfDef CPUAVR5}
   {$i portwrite.inc}
   {$EndIf}
 end;
 
-function TPin<T>.readBit: boolean;
+function TPin.readBit: boolean;
 begin
   {$IfDef CPUAVR5}
   {$i portread.inc}
   {$EndIf}
 end;
 
-function TPin<T>.readBitInline: boolean;
+function TPin.readBitInline: boolean;
 begin
   {$IfDef CPUAVR5}
   {$i portread.inc}
   {$EndIf}
 end;
 
-procedure TPin<T>.setMode(AMode: Byte);
+procedure TPin.setMode(AMode: Byte);
 var old: byte;
 begin
   old := SREG;

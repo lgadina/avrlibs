@@ -1,10 +1,10 @@
 program project1;
 
-uses intrinsics, ports, delay, onewire, progmem;
+uses intrinsics, ports, delay, onewire;
 {atmega328p}
 
-var Pin : TPin<13>;
-    Ow: TOneWire<7>;
+var Pin : specialize TPin<13>;
+    Ow: specialize TOneWire<7>;
     addr: TOneWireRom;
 
 begin

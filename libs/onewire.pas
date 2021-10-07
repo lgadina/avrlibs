@@ -1,6 +1,7 @@
 unit onewire;
 
-{$mode Delphi}
+{$mode objfpc}
+{$ModeSwitch advancedrecords}
 
 interface
 
@@ -22,9 +23,9 @@ type
 
   { TOneWire }
 
-  TOneWire<const T: Byte> = record
+  generic TOneWire<const T: Byte> = record
   private
-    Pin: TPin<T>;
+    Pin: specialize TPin<T>;
     ROM: TOneWireRom;
     LastDiscrepancy: uint8;
     LastFamilyDiscrepancy: uint8;
@@ -40,7 +41,7 @@ type
     procedure write_bytes(const buf: pointer; count: uint16; power: boolean);
     function read(): uint8;
     procedure read_bytes(buf: pointer; count: uint16);
-    procedure select(rom: TOneWireRom);
+    procedure select(ARom: TOneWireRom);
     procedure skip();
     procedure depower();
     procedure target_search(family_code: uint8);
@@ -58,13 +59,13 @@ uses delay, progmem;
 
 { TOneWire }
 
-procedure TOneWire<T>.&begin;
+procedure TOneWire.&begin;
 begin
   Pin.setMode(pmInput);
   resetSearch;
 end;
 
-procedure TOneWire<T>.resetSearch;
+procedure TOneWire.resetSearch;
 var i: byte;
 begin
   i := 0;
@@ -78,7 +79,7 @@ begin
   until i < 8;
 end;
 
-function TOneWire<T>.reset: boolean;
+function TOneWire.reset: boolean;
 var retries: byte = 125;
 begin
   Pin.setMode(pmInput);
@@ -97,7 +98,7 @@ begin
 end;
 
 
-procedure TOneWire<T>.write_bit(const v: boolean);
+procedure TOneWire.write_bit(const v: boolean);
 begin
   if v then
   begin
@@ -117,7 +118,7 @@ begin
   end;
 end;
 
-function TOneWire<T>.read_bit: boolean;
+function TOneWire.read_bit: boolean;
 begin
   Pin.setMode(pmOutput);
   Pin.writeBitInline(low);
@@ -129,7 +130,7 @@ begin
 end;
 
 
-procedure TOneWire<T>.write(const v: uint8; const power: boolean = false);
+procedure TOneWire.write(const v: uint8; const power: boolean = false);
 var b: uint8;
 begin
  for b := 0 to 7 do
@@ -138,7 +139,7 @@ begin
    _power;
 end;
 
-procedure TOneWire<T>.write_bytes(const buf: pointer; count: uint16; power: boolean);
+procedure TOneWire.write_bytes(const buf: pointer; count: uint16; power: boolean);
 var i: uint16;
 begin
  for i := 0 to count - 1 do
@@ -147,13 +148,13 @@ begin
   _power;
 end;
 
-procedure TOneWire<T>._power; inline;
+procedure TOneWire._power; inline;
 begin
   Pin.setMode(pmInput);
   Pin.writeBitInline(LOW);
 end;
 
-function TOneWire<T>.read(): uint8;
+function TOneWire.read(): uint8;
 var b: byte = 0;
 begin
  Result := 0;
@@ -163,32 +164,32 @@ begin
  until b < 8;
 end;
 
-procedure TOneWire<T>.read_bytes(buf: pointer; count: uint16);
+procedure TOneWire.read_bytes(buf: pointer; count: uint16);
 var i: uint16;
 begin
  for i := 0 to count - 1 do
    PByte(Buf+i)^ := read();
 end;
 
-procedure TOneWire<T>.select(rom: TOneWireRom);
+procedure TOneWire.select(ARom: TOneWireRom);
 var i: byte;
 begin
   write($55);
   for i := 0 to 7 do
-   write(rom[i]);
+   write(ARom[i]);
 end;
 
-procedure TOneWire<T>.skip();
+procedure TOneWire.skip();
 begin
   write($cc);
 end;
 
-procedure TOneWire<T>.depower();
+procedure TOneWire.depower();
 begin
   Pin.setMode(pmInput);
 end;
 
-procedure TOneWire<T>.target_search(family_code: uint8);
+procedure TOneWire.target_search(family_code: uint8);
 var i: byte;
 begin
   LastDiscrepancy := 64;
@@ -199,7 +200,7 @@ begin
     ROM[i] := 0;
 end;
 
-function TOneWire<T>.search(var newAddr: TOneWireRom; search_mode: boolean
+function TOneWire.search(var newAddr: TOneWireRom; search_mode: boolean
   ): boolean;
 var id_bit, cmp_id_bit, search_direction: boolean;
     search_result: boolean = false;
@@ -282,7 +283,7 @@ begin
     result := search_result;
 end;
 
-function TOneWire<T>.crc8(const addr: pbyte; len: UInt8): UInt8;
+function TOneWire.crc8(const addr: pbyte; len: UInt8): UInt8;
 var i: byte;
     crc: byte = 0;
     p, p2: pointer;
