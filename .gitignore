@@ -1,0 +1,6 @@
+*.bin
+*.lps
+*.elf
+*.hex
+lib
+backup
