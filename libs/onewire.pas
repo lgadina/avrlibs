@@ -133,8 +133,11 @@ end;
 procedure TOneWire.write(const v: uint8; const power: boolean = false);
 var b: uint8;
 begin
- for b := 0 to 7 do
+ b := 0;
+ repeat
   write_bit((v and (1 shl b)) > 0);
+  inc(b);
+ until b < 8;
   if not power then
    _power;
 end;
@@ -142,8 +145,11 @@ end;
 procedure TOneWire.write_bytes(const buf: pointer; count: uint16; power: boolean);
 var i: uint16;
 begin
- for i := 0 to count - 1 do
+ i := 0;
+ repeat
    write(PByte(buf+i)^);
+   inc(count);
+ until i < count;
  if not power then
   _power;
 end;
@@ -167,16 +173,22 @@ end;
 procedure TOneWire.read_bytes(buf: pointer; count: uint16);
 var i: uint16;
 begin
- for i := 0 to count - 1 do
+  i := 0;
+  repeat
    PByte(Buf+i)^ := read();
+   inc(i);
+  until i < count;
 end;
 
 procedure TOneWire.select(ARom: TOneWireRom);
 var i: byte;
 begin
   write($55);
-  for i := 0 to 7 do
+  i := 0;
+  repeat
    write(ARom[i]);
+   inc(i);
+  until i < 8;
 end;
 
 procedure TOneWire.skip();
@@ -196,8 +208,11 @@ begin
   LastDeviceFlag := false;
   LastFamilyDiscrepancy := 0;
   ROM[0] := family_code;
-  for i := 1 to 7 do
+  i := 0;
+  repeat
     ROM[i] := 0;
+    inc(i);
+  until i < 8;
 end;
 
 function TOneWire.search(var newAddr: TOneWireRom; search_mode: boolean
