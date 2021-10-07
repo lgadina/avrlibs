@@ -13,7 +13,7 @@ var Pin : specialize TPin<13>;
     Pin6: specialize TPin<6>;
     Ow: specialize TOneWire<7>;
     addr: TOneWireRom;
-    tmr: TAvrTimer;
+    tmr: specialize TAvrTimer<2>;
 
 procedure SystemTickInterrupt; public name 'TIMER0_COMPA_ISR'; interrupt;
 begin
@@ -21,13 +21,20 @@ begin
 end;
 
 begin
+  {$IfDef CPUAVR}
   avr_sei;
+  {$EndIf}
 
   Pin.SetMode(pmOutput);
   Pin6.SetMode(pmOutput);
   Pin6.writeBit(True);
-  tmr.setFrequency(1000000);
+  tmr.setFrequency(1000);
   tmr.enableInterrupt(0);
+
+  {$IfNDef CPUAVR}
+  tmr.printDebugInfo();
+  {$EndIf}
+
   repeat
     Pin.writeBit(true);
     delay_usl(_calc_usw(480));
