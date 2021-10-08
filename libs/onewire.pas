@@ -14,7 +14,7 @@ const
 	$C2, $9C, $7E, $20, $A3, $FD, $1F, $41,
 	$00, $9D, $23, $BE, $46, $DB, $65, $F8,
 	$8C, $11, $AF, $32, $CA, $57, $E9, $74
-  ); section '.progmem';
+  );  {$IfDef CPUAVR}section '.progmem';{$EndIf}
 
 type
   TOneWireRom = array[0..7] of uint8;
@@ -310,7 +310,9 @@ begin
      inc(p, (crc and $0f));
      p2 := @dsrc2x16_table;
      inc(p2, 16 + byte(((crc shr 4) and $0f)));
+     {$IfDef CPUAVR}
      crc := progmemByte(p) xor progmemByte(p2);
+     {$EndIf}
    end;
   result := crc;
 end;

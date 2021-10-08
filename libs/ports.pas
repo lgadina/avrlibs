@@ -8,8 +8,10 @@ unit ports;
 
 interface
 
+{$IfDef CPUAVR}
 uses
-  intrinsics;
+    intrinsics;
+{$EndIf}
 const
   pmPullUp  = 0;
   pmInput   = 1;
@@ -68,12 +70,14 @@ end;
 procedure TPin.setMode(AMode: Byte);
 var old: byte;
 begin
+  {$IfDef CPUAVR}
   old := SREG;
   avr_cli;
   {$IfDef CPUAVR5}
   {$i portmode.inc}
   {$EndIf}
   SREG := old;
+  {$EndIf}
 end;
 
 function sbi(b, n: byte): byte;
