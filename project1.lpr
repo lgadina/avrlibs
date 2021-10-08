@@ -28,7 +28,7 @@ begin
   Pin.SetMode(pmOutput);
   Pin6.SetMode(pmOutput);
   Pin6.writeBit(True);
-  tmr.setPeriod(1);
+  tmr.setFrequency(1);
   tmr.enableInterrupt(CHANNEL_A);
 
   {$IfNDef CPUAVR}

@@ -176,7 +176,7 @@ begin
         cpuDivider := CPU_DIV_1024;
       end;
       if cycles < (256 * 1024) then
-        top := cycles div divider
+        top := uint16(cycles div divider)
       else
         top := 0;
       if TimerNo = 0 then
